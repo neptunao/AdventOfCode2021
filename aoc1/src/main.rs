@@ -1,3 +1,4 @@
+use anyhow::Result;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
@@ -26,21 +27,21 @@ fn get_increase_count_windowed(depths: &Vec<i32>) -> i32 {
     increase_count
 }
 
-fn main() {
+fn main() -> Result<()> {
     let f = File::open("input.txt").expect("Can't open file");
     let reader = BufReader::new(f);
     let depths = reader
         .lines()
-        .collect::<Result<Vec<String>, _>>()
-        .expect("Error reading from file")
+        .collect::<Result<Vec<String>, _>>()?
         .iter()
         .map(|s| str::parse::<i32>(s.as_str()))
-        .collect::<Result<Vec<i32>, _>>()
-        .expect("Expect all strings to be numbers");
+        .collect::<Result<Vec<i32>, _>>()?;
 
     let increase_count = get_increase_count(&depths);
     let increase_count_windowed = get_increase_count_windowed(&depths);
 
     println!("Number of increases: {increase_count}");
     println!("Number of increases (windows): {increase_count_windowed}");
+
+    Ok(())
 }
