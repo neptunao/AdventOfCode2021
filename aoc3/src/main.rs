@@ -57,13 +57,13 @@ fn get_char_counts(lines: &Vec<String>) -> Vec<(i32, i32)> {
     char_counts
 }
 
-fn get_oxygen_ratings_chars(lines: &Vec<String>) -> Vec<char> {
+fn get_rating_chars(lines: &Vec<String>, char_selector: fn((i32, i32)) -> char) -> Vec<char> {
     let mut oxygen_ratings = lines.clone();
     let mut i = 0;
 
     while oxygen_ratings.len() > 1 {
-        let (zeros, ones) = get_char_counts(&oxygen_ratings)[i];
-        let most_common = if zeros > ones { '0' } else { '1' };
+        let counts = get_char_counts(&oxygen_ratings)[i];
+        let most_common = char_selector(counts);
         oxygen_ratings = oxygen_ratings
             .iter()
             .filter(|x| x.chars().nth(i) == Some(most_common))
@@ -73,24 +73,6 @@ fn get_oxygen_ratings_chars(lines: &Vec<String>) -> Vec<char> {
     }
 
     oxygen_ratings[0].chars().collect()
-}
-
-fn get_co2_ratings_chars(lines: &Vec<String>) -> Vec<char> {
-    let mut co2_ratings = lines.clone();
-    let mut i = 0;
-
-    while co2_ratings.len() > 1 {
-        let (zeros, ones) = get_char_counts(&co2_ratings)[i];
-        let least_common = if zeros > ones { '1' } else { '0' };
-        co2_ratings = co2_ratings
-            .iter()
-            .filter(|x| x.chars().nth(i) == Some(least_common))
-            .map(|x| x.clone())
-            .collect();
-        i += 1;
-    }
-
-    co2_ratings[0].chars().collect()
 }
 
 fn main() -> Result<()> {
@@ -118,8 +100,16 @@ fn main() -> Result<()> {
 
     println!("power_consumption={power_consumption}");
 
-    let oxygen_rating = get_oxygen_ratings_chars(&lines);
-    let co2_rating = get_co2_ratings_chars(&lines);
+    let oxygen_rating = get_rating_chars(
+        &lines,
+        |(zeroes, ones)| if zeroes > ones { '0' } else { '1' },
+    );
+
+    let co2_rating = get_rating_chars(
+        &lines,
+        |(zeroes, ones)| if zeroes > ones { '1' } else { '0' },
+    );
+
     println!(
         "oxygen_rating={:?} co2_rating={:?}",
         oxygen_rating, co2_rating
