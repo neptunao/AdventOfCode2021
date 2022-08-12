@@ -3,7 +3,7 @@ use std::{
     io::{BufRead, BufReader},
 };
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 
 type BingoBoard = [[i32; 5]; 5];
 
@@ -60,7 +60,57 @@ fn read_game_input(input_path: &str) -> Result<(Vec<i32>, Vec<BingoBoard>), anyh
     Ok((draw_numbers, boards))
 }
 
+fn find_number_index(board: &BingoBoard, number: i32) -> Option<(usize, usize)> {
+    for i in 0..board.len() {
+        for j in 0..board[i].len() {
+            if board[i][j] == number {
+                return Some((i, j));
+            }
+        }
+    }
+
+    None
+}
+
+fn is_bingo(board: &BingoBoard, row: usize, col: usize) -> bool {
+    let is_bingo_row = board[row].iter().all(|&x| x < 0);
+
+    if is_bingo_row {
+        return true;
+    }
+
+    board.iter().map(|arr| arr[col]).all(|x| x < 0)
+}
+
+fn sum_unmarked(board: &BingoBoard) -> i32 {
+    board.iter().flatten().filter(|&&x| x >= 0).sum()
+}
+
+fn find_winning_score(draw_numbers: &Vec<i32>, boards: &mut Vec<BingoBoard>) -> Option<i32> {
+    for draw_number in draw_numbers {
+        for board in boards.iter_mut() {
+            if let Some((x, y)) = find_number_index(&board, *draw_number) {
+                board[x][y] = -1;
+
+                if is_bingo(&board, x, y) {
+                    let score = sum_unmarked(&board) * draw_number;
+                    return Some(score);
+                }
+            }
+        }
+    }
+
+    None
+}
+
 fn main() -> Result<()> {
-    let (draw_numbers, boards) = read_game_input("input.txt")?;
-    Ok(())
+    let (draw_numbers, mut boards) = read_game_input("input.txt")?;
+    let score = find_winning_score(&draw_numbers, &mut boards);
+    match score {
+        Some(score) => {
+            println!("score={score}");
+            Ok(())
+        }
+        None => Err(anyhow!("Bingo setup is wrong")),
+    }
 }
