@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     fs::File,
     io::{BufRead, BufReader},
 };
@@ -26,13 +27,13 @@ fn read_board(reader: &mut BufReader<File>) -> Result<Option<BingoBoard>, anyhow
     let mut b: BingoBoard = [[0; 5]; 5];
 
     for i in 0..5 {
-        let row_nums = read_line_to_vec_i32(reader, ' ')?;
-        if row_nums.is_empty() {
+        let row_numbers = read_line_to_vec_i32(reader, ' ')?;
+        if row_numbers.is_empty() {
             return Ok(None);
         }
 
-        for j in 0..row_nums.len() {
-            b[i][j] = row_nums[j];
+        for j in 0..row_numbers.len() {
+            b[i][j] = row_numbers[j];
         }
     }
 
@@ -86,6 +87,37 @@ fn sum_unmarked(board: &BingoBoard) -> i32 {
     board.iter().flatten().filter(|&&x| x >= 0).sum()
 }
 
+fn find_last_winning_board(
+    draw_numbers: &Vec<i32>,
+    boards: &mut Vec<BingoBoard>,
+) -> Option<(BingoBoard, i32)> {
+    let bingo_boards: &mut HashSet<BingoBoard> = &mut HashSet::new();
+    let mut last_won_board = None;
+
+    for draw_number in draw_numbers {
+        if bingo_boards.len() == boards.len() {
+            return last_won_board;
+        }
+
+        for board in boards.iter_mut() {
+            if bingo_boards.contains(board) {
+                continue;
+            }
+
+            if let Some((x, y)) = find_number_index(&board, *draw_number) {
+                board[x][y] = -1;
+
+                if is_bingo(&board, x, y) {
+                    last_won_board = Some((*board, *draw_number));
+                    bingo_boards.insert(*board);
+                }
+            }
+        }
+    }
+
+    last_won_board
+}
+
 fn find_winning_score(draw_numbers: &Vec<i32>, boards: &mut Vec<BingoBoard>) -> Option<i32> {
     for draw_number in draw_numbers {
         for board in boards.iter_mut() {
@@ -103,11 +135,25 @@ fn find_winning_score(draw_numbers: &Vec<i32>, boards: &mut Vec<BingoBoard>) -> 
     None
 }
 
-fn main() -> Result<()> {
+#[allow(dead_code)]
+fn main_part_1() -> Result<()> {
     let (draw_numbers, mut boards) = read_game_input("input.txt")?;
     let score = find_winning_score(&draw_numbers, &mut boards);
     match score {
         Some(score) => {
+            println!("score={score}");
+            Ok(())
+        }
+        None => Err(anyhow!("Bingo setup is wrong")),
+    }
+}
+
+fn main() -> Result<()> {
+    let (draw_numbers, mut boards) = read_game_input("input.txt")?;
+    let won_board = find_last_winning_board(&draw_numbers, &mut boards);
+    match won_board {
+        Some((board, draw_number)) => {
+            let score = sum_unmarked(&board) * draw_number;
             println!("score={score}");
             Ok(())
         }

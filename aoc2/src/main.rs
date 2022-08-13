@@ -21,14 +21,17 @@ impl SubmarinePosition {
         }
     }
 
+    #[allow(dead_code)]
     fn forward_simple(self: &mut SubmarinePosition, moves: i32) {
         self.horizontal += moves;
     }
 
+    #[allow(dead_code)]
     fn down_simple(self: &mut SubmarinePosition, moves: i32) {
         self.depth += moves;
     }
 
+    #[allow(dead_code)]
     fn up_simple(self: &mut SubmarinePosition, moves: i32) {
         self.depth -= moves;
     }
