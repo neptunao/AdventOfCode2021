@@ -1,9 +1,17 @@
 use anyhow::anyhow;
 use std::{
+    clone,
     fs::File,
     io::{BufRead, BufReader},
     str::{Chars, FromStr},
 };
+
+#[derive(Debug)]
+struct Lines {
+    max_x: i32,
+    max_y: i32,
+    lines: Vec<Line>,
+}
 
 #[derive(Debug)]
 struct Line {
@@ -61,20 +69,102 @@ fn scan_to(chars: &mut Chars, separator: char) -> Option<String> {
     }
 }
 
-fn read_input() -> Result<Vec<Line>, anyhow::Error> {
-    let mut res = vec![];
+fn read_input() -> Result<Lines, anyhow::Error> {
+    let mut max_x = -1;
+    let mut max_y = -1;
+    let mut lines = vec![];
+
     let f = File::open("input.txt")?;
     let reader = BufReader::new(f);
     for line in reader.lines() {
-        res.push(Line::from_str(&line?)?);
+        let line = Line::from_str(&line?)?;
+
+        if line.end_x > max_x {
+            max_x = line.end_x;
+        }
+
+        if line.end_y > max_y {
+            max_y = line.end_y;
+        }
+
+        lines.push(line);
     }
 
-    Ok(res)
+    Ok(Lines {
+        max_x,
+        max_y,
+        lines,
+    })
+}
+
+fn vec_create_with_size<T: clone::Clone>(len: usize, value: T) -> Vec<T> {
+    let mut vec = vec![];
+    vec.resize(len, value);
+    vec
+}
+
+#[allow(dead_code)]
+fn print_field(field: &Vec<Vec<i32>>) {
+    for row in field {
+        let mut str = String::from("");
+        for col in row {
+            str += &col.to_string();
+        }
+        println!("{str}");
+    }
+}
+
+fn swap(x: &mut usize, y: &mut usize) {
+    let tmp = x.clone();
+    *x = *y;
+    *y = tmp;
+}
+
+fn populate_field(field: &mut Vec<Vec<i32>>, lines: &Vec<Line>, skip_diagonal: bool) {
+    for line in lines {
+        if skip_diagonal && line.start_x != line.end_x && line.start_y != line.end_y {
+            continue;
+        }
+        let mut start_x = line.start_x as usize;
+        let mut end_x = line.end_x as usize;
+        let mut start_y = line.start_y as usize;
+        let mut end_y = line.end_y as usize;
+
+        if line.start_x > line.end_x {
+            swap(&mut start_x, &mut end_x)
+        }
+
+        if line.start_y > line.end_y {
+            swap(&mut start_y, &mut end_y)
+        }
+
+        if start_y == end_y {
+            for x in start_x..=end_x {
+                field[start_y as usize][x as usize] += 1;
+            }
+        }
+
+        if start_x == end_x {
+            for y in start_y..=end_y {
+                field[y as usize][start_x as usize] += 1;
+            }
+        }
+    }
 }
 
 fn main() -> anyhow::Result<()> {
-    let lines = read_input()?;
-    println!("{:?}", lines);
+    let lines_input = read_input()?;
+
+    let len_y = (lines_input.max_y + 1) as usize;
+    let len_x = (lines_input.max_x + 1) as usize;
+    let empty_field = vec_create_with_size(len_y, vec_create_with_size(len_x, 0));
+    let mut field_no_diag = &mut empty_field.clone();
+
+    populate_field(&mut field_no_diag, &lines_input.lines, true);
+
+    let intersections = field_no_diag.iter().flatten().filter(|x| **x > 1).count();
+
+    println!("intersections_count (no diagonals) = {intersections}");
 
     Ok(())
 }
