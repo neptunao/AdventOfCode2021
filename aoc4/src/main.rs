@@ -87,12 +87,12 @@ fn sum_unmarked(board: &BingoBoard) -> i32 {
     board.iter().flatten().filter(|&&x| x >= 0).sum()
 }
 
-fn find_last_winning_board<'a>(
+fn find_last_winning_board(
     draw_numbers: &Vec<i32>,
-    boards: &'a mut Vec<BingoBoard>,
+    boards: &mut Vec<BingoBoard>,
     boards_len: usize,
-) -> Option<(&'a BingoBoard, i32)> {
-    let bingo_boards: &mut HashSet<&BingoBoard> = &mut HashSet::new();
+) -> Option<(usize, i32)> {
+    let bingo_boards: &mut HashSet<usize> = &mut HashSet::new();
     let mut last_won_board = None;
 
     for draw_number in draw_numbers {
@@ -100,8 +100,10 @@ fn find_last_winning_board<'a>(
             return last_won_board;
         }
 
-        for board in boards.iter_mut() {
-            if bingo_boards.contains(board) {
+        for i in 0..boards_len {
+            let board = &mut boards[i];
+
+            if bingo_boards.contains(&i) {
                 continue;
             }
 
@@ -109,8 +111,8 @@ fn find_last_winning_board<'a>(
                 board[x][y] = -1;
 
                 if is_bingo(&board, x, y) {
-                    last_won_board = Some((board, *draw_number));
-                    bingo_boards.insert(board);
+                    last_won_board = Some((i, *draw_number));
+                    bingo_boards.insert(i);
                 }
             }
         }
@@ -154,8 +156,8 @@ fn main() -> Result<()> {
     let len = boards.len();
     let won_board = find_last_winning_board(&draw_numbers, &mut boards, len);
     match won_board {
-        Some((board, draw_number)) => {
-            let score = sum_unmarked(&board) * draw_number;
+        Some((board_idx, draw_number)) => {
+            let score = sum_unmarked(&boards[board_idx]) * draw_number;
             println!("score={score}");
             Ok(())
         }
