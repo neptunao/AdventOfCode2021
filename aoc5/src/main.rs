@@ -114,10 +114,20 @@ fn print_field(field: &Vec<Vec<i32>>) {
     }
 }
 
-fn swap(x: &mut usize, y: &mut usize) {
-    let tmp = x.clone();
-    *x = *y;
-    *y = tmp;
+fn in_range(start: i32, end: i32, val: i32) -> bool {
+    if start < end && (val < start || val > end) {
+        return false;
+    }
+
+    if start > end && (val > start || val < end) {
+        return false;
+    }
+
+    return true;
+}
+
+fn in_boundaries(line: &Line, x: i32, y: i32) -> bool {
+    return in_range(line.start_x, line.end_x, x) && in_range(line.start_y, line.end_y, y);
 }
 
 fn populate_field(field: &mut Vec<Vec<i32>>, lines: &Vec<Line>, skip_diagonal: bool) {
@@ -125,31 +135,34 @@ fn populate_field(field: &mut Vec<Vec<i32>>, lines: &Vec<Line>, skip_diagonal: b
         if skip_diagonal && line.start_x != line.end_x && line.start_y != line.end_y {
             continue;
         }
-        let mut start_x = line.start_x as usize;
-        let mut end_x = line.end_x as usize;
-        let mut start_y = line.start_y as usize;
-        let mut end_y = line.end_y as usize;
 
-        if line.start_x > line.end_x {
-            swap(&mut start_x, &mut end_x)
+        let mut x = line.start_x;
+        let mut y = line.start_y;
+
+        let mut step_x = 0i32;
+        if line.start_x < line.end_x {
+            step_x = 1
+        } else if line.start_x > line.end_x {
+            step_x = -1
         }
 
-        if line.start_y > line.end_y {
-            swap(&mut start_y, &mut end_y)
+        let mut step_y = 0i32;
+        if line.start_y < line.end_y {
+            step_y = 1
+        } else if line.start_y > line.end_y {
+            step_y = -1
         }
 
-        if start_y == end_y {
-            for x in start_x..=end_x {
-                field[start_y as usize][x as usize] += 1;
-            }
-        }
-
-        if start_x == end_x {
-            for y in start_y..=end_y {
-                field[y as usize][start_x as usize] += 1;
-            }
+        while in_boundaries(&line, x, y) {
+            field[y as usize][x as usize] += 1;
+            x += step_x;
+            y += step_y;
         }
     }
+}
+
+fn intersections_count(field: &Vec<Vec<i32>>) -> usize {
+    field.iter().flatten().filter(|x| **x > 1).count()
 }
 
 fn main() -> anyhow::Result<()> {
@@ -162,9 +175,19 @@ fn main() -> anyhow::Result<()> {
 
     populate_field(&mut field_no_diag, &lines_input.lines, true);
 
-    let intersections = field_no_diag.iter().flatten().filter(|x| **x > 1).count();
+    println!(
+        "intersections_count (no diagonals) = {}",
+        intersections_count(&field_no_diag)
+    );
 
-    println!("intersections_count (no diagonals) = {intersections}");
+    let mut field_diag = &mut empty_field.clone();
+
+    populate_field(&mut field_diag, &lines_input.lines, false);
+
+    println!(
+        "intersections_count (diagonals) = {}",
+        intersections_count(&field_diag)
+    );
 
     Ok(())
 }
